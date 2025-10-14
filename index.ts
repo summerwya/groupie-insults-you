@@ -1,4 +1,4 @@
-import { CacheType, ChatInputCommandInteraction, Client, Events, GatewayIntentBits, Interaction, MessageFlags, Partials } from "discord.js";
+import { CacheType, ChatInputCommandInteraction, Client, Events, GatewayIntentBits, Guild, Interaction, MessageFlags, PartialGroupDMChannel, Partials } from "discord.js";
 import "dotenv/config";
 import {readFileSync, writeFileSync, existsSync, lstatSync} from "fs";
 import randomize from "./randomize";
@@ -12,6 +12,16 @@ const insults: string[] = readFileSync("data/insults.txt").toString().split("\n"
 let serverConfigs: Record<string, {enable: boolean, chance: number, disableIn: string[] }> = {};
 
 const saveServerConfigFile = () => writeFileSync(SERVER_CONFIGURATIONS_FILE, JSON.stringify(serverConfigs));
+const getGuildId = (interaction: ChatInputCommandInteraction) => interaction.guildId ?? interaction.channelId;
+const addServerIfNotExists = (guildId: string) => {
+    if (guildId in serverConfigs) return;
+
+    serverConfigs[guildId] = {
+        enable: true,
+        disableIn: [],
+        chance: DEFAULT_CHANCE
+    };
+};
 
 if (existsSync(SERVER_CONFIGURATIONS_FILE) && lstatSync(SERVER_CONFIGURATIONS_FILE).isFile()) {
     serverConfigs = JSON.parse(readFileSync(SERVER_CONFIGURATIONS_FILE).toString());
@@ -22,7 +32,7 @@ if (existsSync(SERVER_CONFIGURATIONS_FILE) && lstatSync(SERVER_CONFIGURATIONS_FI
 async function cmdSetChance(interaction: ChatInputCommandInteraction): Promise<void> {
     const newChance: number = interaction.options.getInteger("chance")!;
 
-    serverConfigs[interaction.guildId!].chance = newChance;
+    serverConfigs[getGuildId(interaction)].chance = newChance;
     saveServerConfigFile();
 
     await interaction.reply({ content: `there's now a 1 in ${newChance} chance that i insult someone` });
@@ -30,7 +40,7 @@ async function cmdSetChance(interaction: ChatInputCommandInteraction): Promise<v
 async function cmdSetEnable(interaction: ChatInputCommandInteraction): Promise<void> {
     const enable: boolean = interaction.options.getBoolean("enable")!;
     
-    serverConfigs[interaction.guildId!].enable = enable;
+    serverConfigs[getGuildId(interaction)].enable = enable;
     saveServerConfigFile();
 
     await interaction.reply({ content: `you've **${enOrDis(enable)}abled** me`, flags: MessageFlags.Ephemeral });
@@ -38,7 +48,7 @@ async function cmdSetEnable(interaction: ChatInputCommandInteraction): Promise<v
 async function cmdSetDisableHere(interaction: ChatInputCommandInteraction): Promise<void> {
     const disable = interaction.options.getBoolean("disable", false) ?? true;
     const channel = interaction.options.getChannel("channel", false) ?? interaction.channel!;
-    const serverConfig = serverConfigs[interaction.guildId!];
+    const serverConfig = serverConfigs[getGuildId(interaction)];
 
     if (disable) serverConfig.disableIn.push(channel.id);
     else serverConfig.disableIn = serverConfig.disableIn.filter(channelId => channelId !== channel.id);
@@ -55,15 +65,11 @@ const client = new Client({
 });
 
 client.on(Events.MessageCreate, async message => {
+    addServerIfNotExists(message.guildId!);
+
     if (message.author.id === client.user!.id || !message.guildId || serverConfigs[message.guildId]?.enable === false || serverConfigs[message.guildId]?.disableIn.includes(message.channelId)) return;
 
-    if (!(message.guildId in serverConfigs))
-        serverConfigs[message.guildId] = {
-            enable: true,
-            disableIn: [],
-            chance: DEFAULT_CHANCE
-        }
-    
+
     const serverConfig = serverConfigs[message.guildId]!;
     let roll = Math.floor(Math.random() * serverConfig.chance) + 1;
     try {
@@ -73,6 +79,8 @@ client.on(Events.MessageCreate, async message => {
 
 client.on(Events.InteractionCreate, async (interaction: Interaction<CacheType>) => {
     if (!(interaction instanceof ChatInputCommandInteraction)) return;
+
+    addServerIfNotExists(getGuildId(interaction));
 
     const commandName = interaction.commandName + a(interaction.options.getSubcommandGroup(false)) + a(interaction.options.getSubcommand(false));
 
