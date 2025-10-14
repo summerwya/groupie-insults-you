@@ -5,10 +5,10 @@ import randomize from "./randomize";
 import { a, enOrDis } from "./utilities";
 
 // SECTION - Global Variables
-const SERVER_CONFIGURATIONS_FILE: string = "serverConfigs.json";
+const SERVER_CONFIGURATIONS_FILE: string = "data/serverConfigs.json";
 const DEFAULT_CHANCE = 20;
 
-const insults: string[] = readFileSync("insults.txt").toString().split("\n");
+const insults: string[] = readFileSync("data/insults.txt").toString().split("\n");
 let serverConfigs: Record<string, {enable: boolean, chance: number, disableIn: string[] }> = {};
 
 const saveServerConfigFile = () => writeFileSync(SERVER_CONFIGURATIONS_FILE, JSON.stringify(serverConfigs));
