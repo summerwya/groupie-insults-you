@@ -1,6 +1,6 @@
 # Groupie Insults You
 
-A [YonKaGor](https://youtube.com/@Yonkagor) themed [discord bot](https://discord.com/developers/applications) that insults you
+A [Groupie](https://kennyon.fandom.com/wiki/Groupie) themed [discord bot](https://discord.com/developers/applications) that insults you
 
 ## How to run (Standalone)
 
@@ -17,3 +17,6 @@ A [YonKaGor](https://youtube.com/@Yonkagor) themed [discord bot](https://discord
   * `bun install`
   * `bun run start` 
 6. Done!
+
+
+> *I do not own the OC "Groupie" and they were made by [YonKaGor](https://www.youtube.com/@YonKaGor)*
