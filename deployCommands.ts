@@ -7,7 +7,7 @@ import {
 import { REST, Routes } from 'discord.js';
 
 async function main() {
-    let commands: RESTPostAPIApplicationCommandsJSONBody[] = [
+    const commands: RESTPostAPIApplicationCommandsJSONBody[] = [
         new SlashCommandBuilder()
             .setName("set")
             .setDescription("Set settings")
@@ -47,14 +47,14 @@ async function main() {
     const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
 
     try {
-        console.log(`Started refreshing ${commands.length} application (/) commands.`);
+        console.log(`Started refreshing ${commands.length} commands.`);
 
         await rest.put(
             Routes.applicationCommands(process.env.DISCORD_BOT_CLIENT_ID!),
             {body: commands},
         );
 
-        console.log(`Successfully reloaded application (/) commands.`);
+        console.log(`Successfully reloaded commands.`);
     } catch (error) {
         console.error(error);
     }

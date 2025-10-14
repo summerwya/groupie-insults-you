@@ -1,4 +1,4 @@
-import { CacheType, ChatInputCommandInteraction, Client, Events, GatewayIntentBits, Guild, Interaction, MessageFlags, PartialGroupDMChannel, Partials } from "discord.js";
+import { CacheType, Channel, ChatInputCommandInteraction, Client, Events, GatewayIntentBits, Guild, Interaction, MessageFlags, PartialGroupDMChannel, Partials, TextBasedChannel } from "discord.js";
 import "dotenv/config";
 import {readFileSync, writeFileSync, existsSync, lstatSync} from "fs";
 import randomize from "./randomize";
@@ -6,14 +6,17 @@ import { a, enOrDis } from "./utilities";
 
 // SECTION - Global Variables
 const SERVER_CONFIGURATIONS_FILE: string = "data/serverConfigs.json";
-const DEFAULT_CHANCE = 20;
+const DEFAULT_CHANCE: number = 20;
 
 const insults: string[] = readFileSync("data/insults.txt").toString().split("\n");
 let serverConfigs: Record<string, {enable: boolean, chance: number, disableIn: string[] }> = {};
 
-const saveServerConfigFile = () => writeFileSync(SERVER_CONFIGURATIONS_FILE, JSON.stringify(serverConfigs));
-const getGuildId = (interaction: ChatInputCommandInteraction) => interaction.guildId ?? interaction.channelId;
-const addServerIfNotExists = (guildId: string) => {
+//!SECTION
+
+// SECTION - Helpers
+const saveServerConfigFile = (): void => writeFileSync(SERVER_CONFIGURATIONS_FILE, JSON.stringify(serverConfigs));
+const getGuildId = (interaction: ChatInputCommandInteraction): string => interaction.guildId ?? interaction.channelId;
+function addServerIfNotExists(guildId: string): void {
     if (guildId in serverConfigs) return;
 
     serverConfigs[guildId] = {
@@ -22,11 +25,7 @@ const addServerIfNotExists = (guildId: string) => {
         chance: DEFAULT_CHANCE
     };
 };
-
-if (existsSync(SERVER_CONFIGURATIONS_FILE) && lstatSync(SERVER_CONFIGURATIONS_FILE).isFile()) {
-    serverConfigs = JSON.parse(readFileSync(SERVER_CONFIGURATIONS_FILE).toString());
-} else saveServerConfigFile();
-//!SECTION
+// !SECTION
 
 // SECTION - Command Handlers
 async function cmdSetChance(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -46,7 +45,7 @@ async function cmdSetEnable(interaction: ChatInputCommandInteraction): Promise<v
     await interaction.reply({ content: `you've **${enOrDis(enable)}abled** me`, flags: MessageFlags.Ephemeral });
 }
 async function cmdSetDisableHere(interaction: ChatInputCommandInteraction): Promise<void> {
-    const disable = interaction.options.getBoolean("disable", false) ?? true;
+    const disable: boolean = interaction.options.getBoolean("disable", false) ?? true;
     const channel = interaction.options.getChannel("channel", false) ?? interaction.channel!;
     const serverConfig = serverConfigs[getGuildId(interaction)];
 
@@ -69,9 +68,9 @@ client.on(Events.MessageCreate, async message => {
 
     if (message.author.id === client.user!.id || !message.guildId || serverConfigs[message.guildId]?.enable === false || serverConfigs[message.guildId]?.disableIn.includes(message.channelId)) return;
 
-
     const serverConfig = serverConfigs[message.guildId]!;
-    let roll = Math.floor(Math.random() * serverConfig.chance) + 1;
+    const roll: number = Math.floor(Math.random() * serverConfig.chance) + 1;
+
     try {
         if (roll === 1) await message.reply(randomize(insults[Math.floor(Math.random() * insults.length)]!));
     } catch(e) {}
@@ -107,4 +106,14 @@ client.on(Events.ClientReady, async client => {
 });
 
 client.once(Events.ClientReady, readyClient => console.log(`Logged in as ${readyClient.user.tag}`));
-client.login(process.env.DISCORD_TOKEN);
+//!SECTION
+
+//SECTION - Initialization
+function main() {
+    // Check if the configuration file exists, create one if not
+    if (existsSync(SERVER_CONFIGURATIONS_FILE) && lstatSync(SERVER_CONFIGURATIONS_FILE).isFile()) {
+        serverConfigs = JSON.parse(readFileSync(SERVER_CONFIGURATIONS_FILE).toString());
+    } else saveServerConfigFile();
+
+    client.login(process.env.DISCORD_TOKEN);
+}
