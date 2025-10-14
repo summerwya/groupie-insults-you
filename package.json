@@ -1,0 +1,19 @@
+{
+  "name": "groupie-insults-you",
+  "module": "index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run deployCommands.ts && bun run index.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "discord.js": "^14.22.1",
+    "dotenv": "^17.2.3"
+  }
+}

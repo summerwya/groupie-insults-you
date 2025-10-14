@@ -1,0 +1,102 @@
+import { CacheType, ChatInputCommandInteraction, Client, Events, GatewayIntentBits, Interaction, MessageFlags, Partials } from "discord.js";
+import "dotenv/config";
+import {readFileSync, writeFileSync, existsSync, lstatSync} from "fs";
+import randomize from "./randomize";
+import { a, enOrDis } from "./utilities";
+
+// SECTION - Global Variables
+const SERVER_CONFIGURATIONS_FILE: string = "serverConfigs.json";
+const DEFAULT_CHANCE = 20;
+
+const insults: string[] = readFileSync("insults.txt").toString().split("\n");
+let serverConfigs: Record<string, {enable: boolean, chance: number, disableIn: string[] }> = {};
+
+const saveServerConfigFile = () => writeFileSync(SERVER_CONFIGURATIONS_FILE, JSON.stringify(serverConfigs));
+
+if (existsSync(SERVER_CONFIGURATIONS_FILE) && lstatSync(SERVER_CONFIGURATIONS_FILE).isFile()) {
+    serverConfigs = JSON.parse(readFileSync(SERVER_CONFIGURATIONS_FILE).toString());
+} else saveServerConfigFile();
+//!SECTION
+
+// SECTION - Command Handlers
+async function cmdSetChance(interaction: ChatInputCommandInteraction): Promise<void> {
+    const newChance: number = interaction.options.getInteger("chance")!;
+
+    serverConfigs[interaction.guildId!].chance = newChance;
+    saveServerConfigFile();
+
+    await interaction.reply({ content: `there's now a 1 in ${newChance} chance that i insult someone` });
+}
+async function cmdSetEnable(interaction: ChatInputCommandInteraction): Promise<void> {
+    const enable: boolean = interaction.options.getBoolean("enable")!;
+    
+    serverConfigs[interaction.guildId!].enable = enable;
+    saveServerConfigFile();
+
+    await interaction.reply({ content: `you've **${enOrDis(enable)}abled** me`, flags: MessageFlags.Ephemeral });
+}
+async function cmdSetDisableHere(interaction: ChatInputCommandInteraction): Promise<void> {
+    const disable = interaction.options.getBoolean("disable", false) ?? true;
+    const channel = interaction.options.getChannel("channel", false) ?? interaction.channel!;
+    const serverConfig = serverConfigs[interaction.guildId!];
+
+    if (disable) serverConfig.disableIn.push(channel.id);
+    else serverConfig.disableIn = serverConfig.disableIn.filter(channelId => channelId !== channel.id);
+    saveServerConfigFile();
+
+    await interaction.reply({ content: `You've ${enOrDis(!disable)}abled me in ${channel}` });
+}
+// !SECTION
+
+// SECTION - Discord Client
+const client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+    partials: [Partials.Message]
+});
+
+client.on(Events.MessageCreate, async message => {
+    if (message.author.id === client.user!.id || !message.guildId || serverConfigs[message.guildId]?.enable === false || serverConfigs[message.guildId]?.disableIn.includes(message.channelId)) return;
+
+    if (!(message.guildId in serverConfigs))
+        serverConfigs[message.guildId] = {
+            enable: true,
+            disableIn: [],
+            chance: DEFAULT_CHANCE
+        }
+    
+    const serverConfig = serverConfigs[message.guildId]!;
+    let roll = Math.floor(Math.random() * serverConfig.chance) + 1;
+    try {
+        if (roll === 1) await message.reply(randomize(insults[Math.floor(Math.random() * insults.length)]!));
+    } catch(e) {}
+});
+
+client.on(Events.InteractionCreate, async (interaction: Interaction<CacheType>) => {
+    if (!(interaction instanceof ChatInputCommandInteraction)) return;
+
+    const commandName = interaction.commandName + a(interaction.options.getSubcommandGroup(false)) + a(interaction.options.getSubcommand(false));
+
+    switch(commandName) {
+        case "set-chance": cmdSetChance(interaction); break;
+        case "set-enable": cmdSetEnable(interaction); break;
+        case "set-disable-here": cmdSetDisableHere(interaction); break;
+        default:
+            await interaction.reply("Bruh, i don't even know that command.");
+    }
+});
+
+client.on(Events.ClientReady, async client => {
+    if (!process.env.ALIVE_CHANNEL) return;
+
+    try {
+        const channel = await client.channels.fetch(process.env.ALIVE_CHANNEL, {force: true});
+        if (!channel?.isSendable()) return console.warn(`Can't send messages in ${channel}`);
+
+        await channel.send("I'm alive, bitches.");
+    } catch(e) {
+        console.warn("Couldn't say that I was back", e);
+    }
+});
+
+client.once(Events.ClientReady, readyClient => console.log(`Logged in as ${readyClient.user.tag}`));
+client.login(process.env.DISCORD_TOKEN);
