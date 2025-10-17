@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun run deployCommands.ts && bun run index.js"
+    "start": "bun run deployCommands.ts && bun run index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

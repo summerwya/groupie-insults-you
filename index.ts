@@ -109,11 +109,13 @@ client.once(Events.ClientReady, readyClient => console.log(`Logged in as ${ready
 //!SECTION
 
 //SECTION - Initialization
-function main() {
+async function main() {
     // Check if the configuration file exists, create one if not
     if (existsSync(SERVER_CONFIGURATIONS_FILE) && lstatSync(SERVER_CONFIGURATIONS_FILE).isFile()) {
         serverConfigs = JSON.parse(readFileSync(SERVER_CONFIGURATIONS_FILE).toString());
     } else saveServerConfigFile();
 
-    client.login(process.env.DISCORD_TOKEN);
+    await client.login(process.env.DISCORD_TOKEN);
 }
+
+main()
