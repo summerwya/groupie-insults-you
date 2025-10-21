@@ -10,7 +10,6 @@ const DEFAULT_CHANCE: number = 20;
 
 const insults: string[] = readFileSync("data/insults.txt").toString().split("\n");
 let serverConfigs: Record<string, {enable: boolean, chance: number, disableIn: string[] }> = {};
-
 //!SECTION
 
 // SECTION - Helpers
@@ -92,7 +91,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction<CacheType>) 
     }
 });
 
-client.on(Events.ClientReady, async client => {
+client.once(Events.ClientReady, async client => {
     if (!process.env.ALIVE_CHANNEL) return;
 
     try {
@@ -118,4 +117,5 @@ async function main() {
     await client.login(process.env.DISCORD_TOKEN);
 }
 
-main()
+main();
+//!SECTION
