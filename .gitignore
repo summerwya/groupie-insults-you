@@ -39,3 +39,6 @@ Dockerfile
 .dockerignore
 publish.ps1
 serverConfigs.json
+otherstuff
+data/serverConfigs.json
+.vscode
