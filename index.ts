@@ -13,7 +13,7 @@ import {
 import "dotenv/config";
 import {existsSync, lstatSync, readFileSync, writeFileSync} from "fs";
 import randomize from "./randomize";
-import {a, enOrDis, pick} from "./utilities";
+import {a, awaitSafe, enOrDis, pick} from "./utilities";
 import {BotActions, ServerConfiguration} from "./types";
 
 // SECTION - Global Variables
@@ -132,7 +132,8 @@ const client = new Client({
 });
 
 client.on(Events.MessageCreate, async message => {
-    addServerIfNotExists(message.guildId!);
+    if (!message.guildId) return;
+    addServerIfNotExists(message.guildId);
 
     // Ignore message if it's the bot's message, not from a guild, or disabled in the guild
     if (message.author.id === client.user!.id || !message.guildId || serverConfigs[message.guildId].enable.global === false) return;
@@ -145,26 +146,18 @@ client.on(Events.MessageCreate, async message => {
 
     if (isEnabled("insults") && Math.floor(Math.random() * serverConfig.chances.insults) === 1) await sendReply(message, randomize(pick(INSULT_LIST)));
     if (isEnabled("reactions") && Math.floor(Math.random() * serverConfig.chances.reactions) === 1) {
-        try {
-            await message.react(pick(REACTION_EMOJI_LIST));
-        } catch(e) {
-            console.warn("Couldn't react to message!", e);
-        }
+        await awaitSafe(message.react(pick(REACTION_EMOJI_LIST)), "Couldn't react to message!");
     }
     if (isEnabled("timeouts") && Math.floor(Math.random() * serverConfig.chances.timeouts) === 1) {
         try {
             await message.member?.timeout(TIMEOUT_DURATION);
             await message.channel.send(`Timed out ${message.author} for being a little too annoying`);
         } catch(e) {
-            await message.reply(`Btw, I wanted to time you out but I couldn't, so ` + pick(INSULT_LIST));
+            await awaitSafe(message.reply(`Btw, I wanted to time you out but I couldn't, so ${randomize(pick(INSULT_LIST))}`), "Couldn't tell them that I wanted to mute them");
         }
     }
     if (isEnabled("nicknameChanger") && Math.floor(Math.random() * serverConfig.chances.nicknameChanger) === 1) {
-        try {
-            await message.member?.setNickname(pick(NICKNAME_LIST));
-        } catch(e) {
-            console.warn("Couldn't change the nickname of this person", e);
-        }
+        await awaitSafe(message.member?.setNickname(pick(NICKNAME_LIST)), "Couldn't change the nickname of this person");
     }
     // TODO - execute this every minute that the user passes while in VC
     if (isEnabled("muteMembers") && Math.floor(Math.random() * serverConfig.chances.muteMembers) === 1) {
@@ -194,7 +187,7 @@ client.once(Events.ClientReady, async client => {
         const channel = await client.channels.fetch(process.env.ALIVE_CHANNEL, {force: true});
         if (!channel?.isSendable()) return console.warn(`Can't send messages in ${channel}`);
 
-        await channel.send("I'm alive, bitches.");
+        await channel.send("I'm alive");
     } catch(e) {
         console.warn("Couldn't say that I was back", e);
     }

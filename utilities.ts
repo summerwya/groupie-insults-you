@@ -15,3 +15,13 @@ export const enOrDis = (bool: boolean): string => bool ? "en" : "dis";
 export const a = (what: string | null): string => what ? "-" + what : '';
 
 export const pick = (fromWhat: any[]): any => fromWhat[Math.floor(Math.random() * fromWhat.length)];
+
+export async function awaitSafe(cb: Promise<any> | undefined | null, errorMsg: string): Promise<any> {
+    if (cb === undefined || cb === null) return;
+
+    try {
+        await cb;
+    } catch(e) {
+        console.warn(e, errorMsg);
+    }
+}
