@@ -1,7 +1,10 @@
 services:
   bot:
     build: .
-    restart: on-failure
+    restart: unless-stopped
     env_file: .env
     volumes:
-      - /home/summerwya/docker/groupie/serverConfigs.json:/usr/src/app/data/serverConfigs.json:rw
+      - data:/usr/src/app/data/serverConfigs.json
+
+volumes:
+  data:
