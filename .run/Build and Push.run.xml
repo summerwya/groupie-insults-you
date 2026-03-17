@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Build and Push" type="PowerShellRunType" factoryName="PowerShell" focusToolWindowBeforeRun="true" scriptUrl="D:\Software Development\groupie-insults-you\publish.ps1" executablePath="C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe">
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>
